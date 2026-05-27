@@ -7,12 +7,27 @@ const MODEL = process.env.MODEL;
 
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
+    return;
+  }
+
+  if (req.method === 'GET') {
+    const status = {
+      success: true,
+      message: 'API is running',
+      environment: {
+        ARK_API_KEY: ARK_API_KEY ? '✓ Set' : '✗ Missing',
+        MODEL: MODEL ? '✓ Set' : '✗ Missing',
+        ARK_API_HOST: ARK_API_HOST,
+        ARK_API_PATH: ARK_API_PATH
+      }
+    };
+    res.status(200).json(status);
     return;
   }
 
@@ -90,7 +105,27 @@ module.exports = (req, res) => {
       const proxyReq = https.request(options, (proxyRes) => {
         console.log('ARK API response status:', proxyRes.statusCode);
         
+        if (proxyRes.statusCode >= 400) {
+          let errorBody = '';
+          proxyRes.on('data', (chunk) => {
+            errorBody += chunk.toString();
+          });
+          proxyRes.on('end', () => {
+            console.error('ARK API error response:', errorBody);
+            try {
+              const errorData = JSON.parse(errorBody);
+              res.status(proxyRes.statusCode).json({ 
+                error: errorData.message || errorData.error || 'API request failed' 
+              });
+            } catch (e) {
+              res.status(proxyRes.statusCode).json({ error: errorBody || 'API request failed' });
+            }
+          });
+          return;
+        }
+        
         res.status(proxyRes.statusCode);
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         
         proxyRes.on('data', (chunk) => {
           try {
