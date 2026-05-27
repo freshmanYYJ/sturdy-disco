@@ -1,12 +1,26 @@
 const http = require('http');
 const https = require('https');
 
-const PORT = 3000;
+// 尝试加载 .env 文件（本地开发时使用）
+try {
+  require('dotenv').config();
+} catch (e) {
+  // 如果没有安装 dotenv 或者不是本地开发环境，忽略错误
+}
 
-const ARK_API_HOST = 'ark.cn-beijing.volces.com';
-const ARK_API_PATH = '/api/v3/responses';
-const ARK_API_KEY = 'ark-4c1bc0b9-0fb2-47f8-ad9f-ff5465707816-f00ae';
-const MODEL = 'ep-20260527224928-8l7db';
+const PORT = process.env.PORT || 3000;
+
+const ARK_API_HOST = process.env.ARK_API_HOST || 'ark.cn-beijing.volces.com';
+const ARK_API_PATH = process.env.ARK_API_PATH || '/api/v3/responses';
+const ARK_API_KEY = process.env.ARK_API_KEY;
+const MODEL = process.env.MODEL;
+
+if (!ARK_API_KEY || !MODEL) {
+  console.error('❌ 错误：请设置 ARK_API_KEY 和 MODEL 环境变量！');
+  console.error('   本地开发：创建 .env 文件');
+  console.error('   Vercel部署：在项目设置中配置环境变量');
+  process.exit(1);
+}
 
 let requestCount = 0;
 

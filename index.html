@@ -256,6 +256,15 @@
 
         let conversationHistory = [];
 
+        // 自动检测 API 地址（本地开发或 Vercel 部署）
+        function getApiUrl() {
+            const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            if (isLocalhost) {
+                return 'http://localhost:3000/api/chat';
+            }
+            return '/api/chat';
+        }
+
         function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
@@ -306,7 +315,8 @@
             showTyping();
 
             try {
-                const response = await fetch('http://localhost:3000/api/chat', {
+                const apiUrl = getApiUrl();
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

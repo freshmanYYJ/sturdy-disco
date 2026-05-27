@@ -1,0 +1,17 @@
+{
+  "name": "life-coach-ai",
+  "version": "0.1.0",
+  "description": "AI Life Coach using Huoshan Ark DeepSeek R1 API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["ai", "life-coach", "deepseek", "volcengine"],
+  "author": "Life Coach Dev",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "dotenv": "^16.4.0"
+  }
+}
