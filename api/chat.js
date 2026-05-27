@@ -21,8 +21,15 @@ module.exports = (req, res) => {
     return;
   }
 
-  if (!ARK_API_KEY || !MODEL) {
-    res.status(500).json({ error: 'Server configuration error: Missing API credentials' });
+  if (!ARK_API_KEY) {
+    console.error('ERROR: ARK_API_KEY environment variable is not set');
+    res.status(500).json({ error: 'Server configuration error: ARK_API_KEY is missing' });
+    return;
+  }
+
+  if (!MODEL) {
+    console.error('ERROR: MODEL environment variable is not set');
+    res.status(500).json({ error: 'Server configuration error: MODEL is missing' });
     return;
   }
 
@@ -33,6 +40,13 @@ module.exports = (req, res) => {
 
   req.on('end', () => {
     try {
+      console.log('Received request body:', body.length, 'bytes');
+      
+      if (!body) {
+        res.status(400).json({ error: 'Empty request body' });
+        return;
+      }
+
       const requestData = JSON.parse(body);
       const userMessage = requestData.message;
 
@@ -40,6 +54,8 @@ module.exports = (req, res) => {
         res.status(400).json({ error: 'Message is required' });
         return;
       }
+
+      console.log('User message:', userMessage.substring(0, 50), '...');
 
       const arkRequestBody = {
         model: MODEL,
@@ -57,6 +73,8 @@ module.exports = (req, res) => {
         ]
       };
 
+      console.log('Making request to ARK API...');
+
       const options = {
         hostname: ARK_API_HOST,
         port: 443,
@@ -70,23 +88,37 @@ module.exports = (req, res) => {
       };
 
       const proxyReq = https.request(options, (proxyRes) => {
+        console.log('ARK API response status:', proxyRes.statusCode);
+        
         res.status(proxyRes.statusCode);
         
         proxyRes.on('data', (chunk) => {
-          res.write(chunk);
+          try {
+            res.write(chunk);
+          } catch (e) {
+            console.error('Error writing response:', e.message);
+          }
         });
         
         proxyRes.on('end', () => {
-          res.end();
+          console.log('ARK API response ended');
+          try {
+            res.end();
+          } catch (e) {
+            console.error('Error ending response:', e.message);
+          }
         });
         
         proxyRes.on('error', (e) => {
           console.error('Proxy response error:', e.message);
-          res.status(502).json({ error: 'Proxy error' });
+          if (!res.headersSent) {
+            res.status(502).json({ error: 'Proxy error: ' + e.message });
+          }
         });
       });
 
       proxyReq.setTimeout(60000, () => {
+        console.error('Request timeout');
         proxyReq.destroy();
         if (!res.headersSent) {
           res.status(504).json({ error: 'API request timeout' });
@@ -96,16 +128,20 @@ module.exports = (req, res) => {
       proxyReq.on('error', (error) => {
         console.error('Proxy request error:', error.message);
         if (!res.headersSent) {
-          res.status(502).json({ error: 'Failed to connect to AI service' });
+          res.status(502).json({ error: 'Failed to connect to AI service: ' + error.message });
         }
       });
 
       proxyReq.write(JSON.stringify(arkRequestBody));
       proxyReq.end();
 
+      console.log('Request sent to ARK API');
+
     } catch (error) {
       console.error('Error handling request:', error.message);
-      res.status(500).json({ error: 'Internal server error' });
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
+      }
     }
   });
 };
