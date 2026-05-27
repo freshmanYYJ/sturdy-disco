@@ -2,8 +2,8 @@ const https = require('https');
 
 const ARK_API_HOST = process.env.ARK_API_HOST || 'ark.cn-beijing.volces.com';
 const ARK_API_PATH = process.env.ARK_API_PATH || '/api/v3/responses';
-const ARK_API_KEY = process.env.ARK_API_KEY;
-const MODEL = process.env.MODEL;
+const ARK_API_KEY = (process.env.ARK_API_KEY || '').trim();
+const MODEL = (process.env.MODEL || '').trim();
 
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
